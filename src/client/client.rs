@@ -6,7 +6,7 @@ use std::process;
 fn main () {
   if let Ok(mut stream) = TcpStream::connect("127.0.0.1:7878") {
     println!("me conectei com o servidor!");
-    let bufsend = "<FILE><name><000>".as_bytes();
+    let bufsend = "C+oi+tchau+".as_bytes();
 
     let res = stream.write(bufsend);
     match res {
