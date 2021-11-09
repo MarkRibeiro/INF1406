@@ -8,6 +8,7 @@ use std::process;
 use std::sync::mpsc;
 use std::sync::mpsc::Sender;
 use std::env::args;
+use std::intrinsics::{floorf32, log2f32};
 
 fn main() {
   let arg_lis = args().collect::<Vec<String>>();
@@ -80,6 +81,15 @@ fn interpreta_mensagem(msg: String, send: Sender<(String, String, Option<String>
     Some(value2) => value = Some(value2.as_str().to_string())
   }
   send.send((behavior.to_string(), key.to_string(), value));
+}
+
+fn route(from: i32, to: i32, total: i32) -> i32 {
+  if from != 0 {
+    return (route(0,(to - from).rem_euclid(total),total)+from).rem_euclid(total)
+  } else {
+    return 2^(f32::floor(f31::log2(to as f32)))
+  }
+
 }
 
 fn tratacon(mut s: TcpStream, send: Sender<(String, String, Option<String>)>) {
