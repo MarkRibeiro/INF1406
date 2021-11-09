@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use regex::Regex;
 use std::thread;
 use std::net::{TcpListener, TcpStream};
@@ -6,6 +7,54 @@ use std::io::Write;
 use std::process;
 use std::sync::mpsc;
 use std::sync::mpsc::Sender;
+
+fn main() {
+  let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
+  println! ("vai esperar conexoes!");
+
+  let (send_channel, receive_channel) = mpsc::channel();
+  let send_channel:Sender<(String, String, Option<String>)> = send_channel;
+  thread::spawn(move || {
+    let mut dicionario:HashMap<String, String> = HashMap::new();
+    loop {
+      let (behavior, key, value) = receive_channel.recv().unwrap();
+      println!("behavior: {:?}", &behavior);
+      println!("key: {:?}", &key);
+      println!("value: {:?}", &value);
+      let mut ret:String = "OK".to_string();
+
+      if behavior == "I" {
+        insere(key, value.unwrap(), &mut dicionario);
+      }
+      else if behavior == "C" {
+        ret = consulta(key, &mut dicionario);
+      }
+
+      if let Ok(mut stream) = TcpStream::connect("127.0.0.1:7879") {
+        let bufsend = ret.as_bytes();
+
+        let res = stream.write(bufsend);
+        match res {
+          Ok(num) => println!("Enviou {}", String::from_utf8_lossy(&bufsend[..num])),
+          Err(_) => {println!("erro na escrita"); process::exit(0x0)},
+        }
+      }
+
+      else {
+        println!("não consegui me conectar...");
+      }
+    }
+  });
+
+  for stream in listener.incoming() {
+    let stream = stream.unwrap();
+    println!("nova conexão!");
+    let send_clone = send_channel.clone();
+    thread::spawn(move || {
+      tratacon(stream, send_clone)
+    });
+  }
+}
 
 fn interpreta_mensagem (msg: String, send: Sender<(String, String, Option<String>)>) {
   let re = Regex::new(r"(?P<behavior>I|C)\+(?P<key>[^\+]+)\+(?:(?P<value>[^\+]+)\+)?").unwrap();
@@ -17,7 +66,6 @@ fn interpreta_mensagem (msg: String, send: Sender<(String, String, Option<String
     None => value = None,
     Some(value2) => value = Some(value2.as_str().to_string())
   }
-
   send.send((behavior.to_string(), key.to_string(), value));
 }
 
@@ -31,44 +79,18 @@ fn tratacon (mut s: TcpStream, send: Sender<(String, String, Option<String>)>) {
     Err(_) => {println!("erro"); process::exit(0x01)},
   };
 
-  println!("recebi {} bytes", lidos);
-
-  let st = String::from_utf8_lossy(&buffer);
+  let st = String::from_utf8_lossy(&buffer[..lidos]);
 
   println!("recebeu: {}", st);
 
   let msg = st.to_string();
   interpreta_mensagem(msg, send);
-
-  let res = s.write(&buffer[0..lidos]);
-  match res {
-    Ok(num) => println!("escreveu {}", num),
-    Err(_) => {println!("erro"); process::exit(0x01)},
-  }
-
 }
 
-fn main() {
-  let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
-  println! ("vai esperar conexoes!");
+fn insere(key: String, value: String, dicionario: &mut HashMap<String, String>){
+  dicionario.insert(key, value);
+}
 
-  let (send_channel, receive_channel) = mpsc::channel();
-  thread::spawn(move || {
-    loop {
-      let (behavior, key, value) = receive_channel.recv().unwrap();
-      println!("{:?}", behavior);
-      println!("{:?}", key);
-      println!("{:?}", value);
-      println!("oi eu so 1 thread");
-    }
-  });
-
-  for stream in listener.incoming() {
-    let stream = stream.unwrap();
-    println!("nova conexão!");
-    let send_clone = send_channel.clone();
-    thread::spawn(move || {
-      tratacon(stream, send_clone)
-    });
-  }
+fn consulta(key: String, dicionario: &mut HashMap<String, String>) -> String{
+  return dicionario.get(&*key).unwrap().clone();
 }
