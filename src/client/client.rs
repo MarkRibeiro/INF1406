@@ -10,11 +10,8 @@ fn main () {
       let mut buffer = String::new();
       io::stdin().read_line(&mut buffer);
       let bufsend;
-      if buffer == "1\n".to_string() {
-        bufsend = "I+11+666+".as_bytes();
-      } else {
-        bufsend = "C+11+".as_bytes();
-      }
+
+      bufsend = buffer.trim().as_bytes();
 
       let res = stream.write(bufsend);
       match res {

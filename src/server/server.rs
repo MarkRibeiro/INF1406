@@ -8,17 +8,16 @@ use std::process;
 use std::sync::mpsc;
 use std::sync::mpsc::Sender;
 use std::env::args;
-use std::intrinsics::{floorf32, log2f32};
 
 fn main() {
   let arg_lis = args().collect::<Vec<String>>();
   let id: i32 = arg_lis[1].parse().unwrap();
   let total: i32 = arg_lis[2].parse().unwrap();
-  let listener = TcpListener::bind("127.0.0.1:7879").unwrap();
+  let listener = TcpListener::bind("127.0.0.1:".to_owned()+ (7879 + id).to_string().as_str()).unwrap();
   println!("vai esperar conexoes!");
 
   let (send_channel, receive_channel) = mpsc::channel();
-  let send_channel: Sender<(String, String, Option<String>)> = send_channel;
+  let send_channel: Sender<(String, String, Option<String>, String)> = send_channel;
   thread::spawn(move || {
     let mut dicionario: HashMap<String, String> = HashMap::new();
     let mut rotas: HashMap<i32, String> = HashMap::new();
@@ -32,7 +31,8 @@ fn main() {
       }
     }
     loop {
-      let (behavior, key, value) = receive_channel.recv().unwrap();
+      let msg = receive_channel.recv();
+      let (behavior, key, value, message) = msg.unwrap();
       println!("behavior: {:?}", &behavior);
       println!("key: {:?}", &key);
       println!("value: {:?}", &value);
@@ -66,7 +66,21 @@ fn main() {
         }
       } else {
 
-        //unimplemented!("ROTEAMENTO");
+        if let Ok(mut stream) = TcpStream::connect("127.0.0.1:".to_owned()+(rotas.get(&hash).unwrap()).as_str()) {
+
+          let bufsend : &[u8] = message.as_bytes();
+
+          let res = stream.write(bufsend);
+          match res {
+            Ok(num) => println!("Enviou {}", String::from_utf8_lossy(&bufsend[..num])),
+            Err(_) => {
+              println!("erro na escrita");
+              process::exit(0x0)
+            }
+          }
+        } else {
+          println!("não consegui me conectar...");
+        }
       }
     }
   });
@@ -81,7 +95,7 @@ fn main() {
   }
 }
 
-fn interpreta_mensagem(msg: String, send: Sender<(String, String, Option<String>)>) {
+fn interpreta_mensagem(msg: String, send: Sender<(String, String, Option<String>, String)>) {
   let re = Regex::new(r"(?P<behavior>I|C)\+(?P<key>[^\+]+)\+(?:(?P<value>[^\+]+)\+)?").unwrap();
   let caps = re.captures(&msg).unwrap();
   let behavior = caps.name("behavior").unwrap().as_str();
@@ -91,22 +105,12 @@ fn interpreta_mensagem(msg: String, send: Sender<(String, String, Option<String>
     None => value = None,
     Some(value2) => value = Some(value2.as_str().to_string())
   }
-  send.send((behavior.to_string(), key.to_string(), value));
+  send.send((behavior.to_string(), key.to_string(), value, msg));
 }
 
-fn route(from: i32, to: i32, total: i32) -> i32 {
-  if from != 0 {
-    return (route(0,(to - from).rem_euclid(total),total)+from).rem_euclid(total)
-  } else {
-    return 2^(f32::floor(f31::log2(to as f32)))
-  }
-
-}
-
-fn tratacon(mut s: TcpStream, send: Sender<(String, String, Option<String>)>) {
+fn tratacon(mut s: TcpStream, send: Sender<(String, String, Option<String>, String)>) {
   let mut buffer = [0; 128];
   let res = s.read(&mut buffer);
-
   let lidos = match res {
     Ok(num) => num,
     Err(_) => {
@@ -121,6 +125,14 @@ fn tratacon(mut s: TcpStream, send: Sender<(String, String, Option<String>)>) {
 
   let msg = st.to_string();
   interpreta_mensagem(msg, send);
+}
+
+fn route(from: i32, to: i32, total: i32) -> i32 {
+  if from != 0 {
+    return (route(0,(to - from).rem_euclid(total),total)+from).rem_euclid(total)
+  } else {
+    return 2_i32.pow(f32::floor(f32::log2(to as f32)) as u32) as i32;
+  }
 }
 
 fn insere(key: String, value: String, dicionario: &mut HashMap<String, String>) {
