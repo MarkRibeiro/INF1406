@@ -95,7 +95,7 @@ fn main() {
 }
 
 fn interpreta_mensagem(msg: String, send: Sender<(String, String, String, Option<String>, String)>) {
-  let re = Regex::new(r"(?P<IP>[^\+])\+(?P<behavior>I|C)\+(?P<key>[^\+]+)\+(?:(?P<value>[^\+]+)\+)?").unwrap();
+  let re = Regex::new(r"(?P<IP>[^\+]+)\+(?P<behavior>I|C)\+(?P<key>[^\+]+)\+(?:(?P<value>[^\+]+)\+)?").unwrap();
   let caps = re.captures(&msg).unwrap();
   let IP = caps.name("IP").unwrap().as_str();
   let behavior = caps.name("behavior").unwrap().as_str();

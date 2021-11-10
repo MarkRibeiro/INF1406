@@ -5,17 +5,22 @@ use std::{io, process};
 
 fn main () {
   loop {
-    if let Ok(mut stream) = TcpStream::connect("127.0.0.1:7879") {
+    let mut nodeString =  String::new();
+    io::stdin().read_line(&mut nodeString);
+    let nodeNumber : i32 = nodeString.trim().parse().unwrap();
+
+    if let Ok(mut stream) = TcpStream::connect("127.0.0.1:".to_string()+(7879 + nodeNumber).to_string().as_str()) {
       println!("me conectei com o servidor!");
       let mut buffer = String::new();
+
       io::stdin().read_line(&mut buffer);
       let bufsend;
 
-      bufsend = ("127.0.0.1:7878+" + buffer.trim()).as_bytes();
+      bufsend = format!("{}+{}","127.0.0.1:7878".to_owned(),buffer.trim());
 
-      let res = stream.write(bufsend);
+      let res = stream.write(bufsend.as_bytes());
       match res {
-        Ok(num) => println!("Enviou {}", String::from_utf8_lossy(&bufsend)),
+        Ok(num) => println!("Enviou {}", String::from_utf8_lossy(&bufsend.as_bytes())),
         Err(_) => {
           println!("erro na escrita");
           process::exit(0x0)
