@@ -17,7 +17,7 @@ fn main() {
   println!("vai esperar conexoes!");
 
   let (send_channel, receive_channel) = mpsc::channel();
-  let send_channel: Sender<(String, String, Option<String>, String)> = send_channel;
+  let send_channel: Sender<(String, String, String, Option<String>, String)> = send_channel;
   thread::spawn(move || {
     let mut dicionario: HashMap<String, String> = HashMap::new();
     let mut rotas: HashMap<i32, String> = HashMap::new();
@@ -32,7 +32,8 @@ fn main() {
     }
     loop {
       let msg = receive_channel.recv();
-      let (behavior, key, value, message) = msg.unwrap();
+      let (IP, behavior, key, value, message) = msg.unwrap();
+      println!("IP: {:?}", &IP);
       println!("behavior: {:?}", &behavior);
       println!("key: {:?}", &key);
       println!("value: {:?}", &value);
@@ -50,7 +51,7 @@ fn main() {
           ret = consulta(key, &mut dicionario);
         }
 
-        if let Ok(mut stream) = TcpStream::connect("127.0.0.1:7878") {
+        if let Ok(mut stream) = TcpStream::connect(IP) {
           let bufsend = ret.as_bytes();
 
           let res = stream.write(bufsend);
@@ -65,9 +66,7 @@ fn main() {
           println!("não consegui me conectar...");
         }
       } else {
-
         if let Ok(mut stream) = TcpStream::connect("127.0.0.1:".to_owned()+(rotas.get(&hash).unwrap()).as_str()) {
-
           let bufsend : &[u8] = message.as_bytes();
 
           let res = stream.write(bufsend);
@@ -95,9 +94,10 @@ fn main() {
   }
 }
 
-fn interpreta_mensagem(msg: String, send: Sender<(String, String, Option<String>, String)>) {
-  let re = Regex::new(r"(?P<behavior>I|C)\+(?P<key>[^\+]+)\+(?:(?P<value>[^\+]+)\+)?").unwrap();
+fn interpreta_mensagem(msg: String, send: Sender<(String, String, String, Option<String>, String)>) {
+  let re = Regex::new(r"(?P<IP>[^\+])\+(?P<behavior>I|C)\+(?P<key>[^\+]+)\+(?:(?P<value>[^\+]+)\+)?").unwrap();
   let caps = re.captures(&msg).unwrap();
+  let IP = caps.name("IP").unwrap().as_str();
   let behavior = caps.name("behavior").unwrap().as_str();
   let key = caps.name("key").unwrap().as_str();
   let value;
@@ -105,10 +105,10 @@ fn interpreta_mensagem(msg: String, send: Sender<(String, String, Option<String>
     None => value = None,
     Some(value2) => value = Some(value2.as_str().to_string())
   }
-  send.send((behavior.to_string(), key.to_string(), value, msg));
+  send.send((IP.to_string(), behavior.to_string(), key.to_string(), value, msg));
 }
 
-fn tratacon(mut s: TcpStream, send: Sender<(String, String, Option<String>, String)>) {
+fn tratacon(mut s: TcpStream, send: Sender<(String, String, String, Option<String>, String)>) {
   let mut buffer = [0; 128];
   let res = s.read(&mut buffer);
   let lidos = match res {

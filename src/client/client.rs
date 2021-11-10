@@ -11,7 +11,7 @@ fn main () {
       io::stdin().read_line(&mut buffer);
       let bufsend;
 
-      bufsend = buffer.trim().as_bytes();
+      bufsend = ("127.0.0.1:7878+" + buffer.trim()).as_bytes();
 
       let res = stream.write(bufsend);
       match res {
