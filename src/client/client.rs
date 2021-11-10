@@ -5,7 +5,7 @@ use std::{io, process};
 
 fn main () {
   loop {
-    if let Ok(mut stream) = TcpStream::connect("127.0.0.1:7878") {
+    if let Ok(mut stream) = TcpStream::connect("127.0.0.1:7879") {
       println!("me conectei com o servidor!");
       let mut buffer = String::new();
       io::stdin().read_line(&mut buffer);
@@ -25,7 +25,7 @@ fn main () {
         },
       }
 
-      let listener = TcpListener::bind("127.0.0.1:7879").unwrap();
+      let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
       for stream in listener.incoming() {
         let mut stream = stream.unwrap();
         let mut bufrec: [u8; 128] = [0; 128];

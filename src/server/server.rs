@@ -13,14 +13,24 @@ use std::intrinsics::{floorf32, log2f32};
 fn main() {
   let arg_lis = args().collect::<Vec<String>>();
   let id: i32 = arg_lis[1].parse().unwrap();
-  let tot: i32 = arg_lis[2].parse().unwrap();
-  let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
+  let total: i32 = arg_lis[2].parse().unwrap();
+  let listener = TcpListener::bind("127.0.0.1:7879").unwrap();
   println!("vai esperar conexoes!");
 
   let (send_channel, receive_channel) = mpsc::channel();
   let send_channel: Sender<(String, String, Option<String>)> = send_channel;
   thread::spawn(move || {
     let mut dicionario: HashMap<String, String> = HashMap::new();
+    let mut rotas: HashMap<i32, String> = HashMap::new();
+    for i in 0..total {
+      if i == id {
+        continue
+      }
+      else {
+        let next: i32 = route(id, i, total);
+        rotas.insert(i, (7879 + next).to_string());
+      }
+    }
     loop {
       let (behavior, key, value) = receive_channel.recv().unwrap();
       println!("behavior: {:?}", &behavior);
@@ -31,7 +41,7 @@ fn main() {
       for byte in key.as_bytes() {
         hash += (*byte) as i32;
       }
-      hash = hash % tot;
+      hash = hash % total;
 
       if (hash == id) {
         if behavior == "I" {
@@ -40,7 +50,7 @@ fn main() {
           ret = consulta(key, &mut dicionario);
         }
 
-        if let Ok(mut stream) = TcpStream::connect("127.0.0.1:7879") {
+        if let Ok(mut stream) = TcpStream::connect("127.0.0.1:7878") {
           let bufsend = ret.as_bytes();
 
           let res = stream.write(bufsend);
@@ -55,7 +65,8 @@ fn main() {
           println!("não consegui me conectar...");
         }
       } else {
-        unimplemented!("ROTEAMENTO");
+
+        //unimplemented!("ROTEAMENTO");
       }
     }
   });
