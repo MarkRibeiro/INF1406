@@ -34,10 +34,11 @@ fn main() {
     }
     loop {
       let mut requests : LinkedList<Request> = delayed_requests.clone();
+      delayed_requests.clear();
       requests.push_front(receive_channel.recv().expect("Error receiving message"));
       for msg in requests {
-        let (IP, behavior, key, value, message) = msg;
-        println!("IP: {:?}", &IP);
+        let (ip, behavior, key, value, message) = msg;
+        println!("ip: {:?}", &ip);
         println!("behavior: {:?}", &behavior);
         println!("key: {:?}", &key);
         println!("value: {:?}", &value);
@@ -55,19 +56,19 @@ fn main() {
             let dict_val = consulta(key.clone(), &mut dicionario);
             match dict_val {
               None => {
-                delayed_requests.push_back((IP, behavior, key, value, message));
+                delayed_requests.push_back((ip, behavior, key, value, message));
                 continue;
               }
               Some(val) => { ret = val.clone(); }
             }
           }
 
-          if let Ok(mut stream) = TcpStream::connect(IP) {
+          if let Ok(mut stream) = TcpStream::connect(ip) {
             let bufsend = ret.as_bytes();
 
             let res = stream.write(bufsend);
             match res {
-              Ok(num) => println!("Enviou {}", String::from_utf8_lossy(&bufsend[..num])),
+              Ok(num) => println!("{} Enviou {}", id.to_string(), String::from_utf8_lossy(&bufsend[..num])),
               Err(_) => {
                 println!("erro na escrita");
                 process::exit(0x0)
@@ -101,15 +102,15 @@ fn main() {
     println!("nova conexão!");
     let send_clone = send_channel.clone();
     thread::spawn(move || {
-      tratacon(stream, send_clone)
+      tratacon(stream, send_clone, id);
     });
   }
 }
 
 fn interpreta_mensagem(msg: String, send: Sender<Request>) {
-  let re = Regex::new(r"(?P<IP>[^\+]+)\+(?P<behavior>I|C)\+(?P<key>[^\+]+)\+(?:(?P<value>[^\+]+)\+)?").unwrap();
+  let re = Regex::new(r"(?P<ip>[^\+]+)\+(?P<behavior>I|C)\+(?P<key>[^\+]+)\+(?:(?P<value>[^\+]+)\+)?").unwrap();
   let caps = re.captures(&msg).unwrap();
-  let IP = caps.name("IP").unwrap().as_str();
+  let ip = caps.name("ip").unwrap().as_str();
   let behavior = caps.name("behavior").unwrap().as_str();
   let key = caps.name("key").unwrap().as_str();
   let value;
@@ -117,10 +118,15 @@ fn interpreta_mensagem(msg: String, send: Sender<Request>) {
     None => value = None,
     Some(value2) => value = Some(value2.as_str().to_string())
   }
-  send.send((IP.to_string(), behavior.to_string(), key.to_string(), value, msg));
+  let res = send.send((ip.to_string(), behavior.to_string(), key.to_string(), value, msg));
+  match res {
+    Ok(_) => {}
+    Err(_) => { println!("erro no parser");
+      process::exit(0x0)}
+  }
 }
 
-fn tratacon(mut s: TcpStream, send: Sender<Request>) {
+fn tratacon(mut s: TcpStream, send: Sender<Request>, id:i32) {
   let mut buffer = [0; 128];
   let res = s.read(&mut buffer);
   let lidos = match res {
@@ -133,7 +139,7 @@ fn tratacon(mut s: TcpStream, send: Sender<Request>) {
 
   let st = String::from_utf8_lossy(&buffer[..lidos]);
 
-  println!("recebeu: {}", st);
+  println!("{} recebeu: {}",id.to_string() , st);
 
   let msg = st.to_string();
   interpreta_mensagem(msg, send);
