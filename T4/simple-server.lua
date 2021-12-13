@@ -44,22 +44,21 @@ local client = mqtt.client{
 	clean = true,
 	id = "servidor"
 }
-print("created MQTT client", client)
 
 client:on{
 	connect = function(connack)
 		if connack.rc ~= 0 then
-			print("connection to broker failed:", connack:reason_string(), connack)
+			print("Falha na conexão com broker:", connack:reason_string(), connack)
 			return
 		end
-		print("connected:", connack) -- successful connection
+		print("Conectado:", connack) -- successful connection
 
 		-- subscribe to test topic and publish message after it
 		assert(client:subscribe{ topic="inf1406-reqs", callback=function(suback)
-			print("subscribed:", suback)
+			print("Assinou:", suback)
 		end})
 		assert(client:subscribe{ topic="inf1406-monitor", callback=function(suback)
-			print("subscribed:", suback)
+			print("Assinou:", suback)
 		end})
 
 		assert(client:publish{
@@ -75,7 +74,7 @@ client:on{
 
 		assert(client:acknowledge(msg))
 
-		print("received:", msg.payload)
+		print("Recebido:", msg.payload)
 		if msg.topic == "inf1406-reqs" then
 			handle_request(client,msg)
 
@@ -94,11 +93,11 @@ client:on{
 	end,
 
 	error = function(err)
-		print("MQTT client error:", err)
+		print("Erro no cliente MQTT:", err)
 	end,
 }
 
-print("running ioloop for it")
+print("Rodando ioloop")
 mqtt.run_ioloop(client)
 
-print("done, ioloop is stopped")
+print("Terminado, ioloop parou")
