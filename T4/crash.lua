@@ -26,7 +26,7 @@ client:on{
 		end
 		print("Conectado:", connack)
         assert(client:publish{
-            topic = "inf1406-reqs",
+            topic = "inf1406-test",
             payload = arg[1],
         })
         assert(client:disconnect())
