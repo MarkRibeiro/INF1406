@@ -6,6 +6,7 @@ local json = require("json")
 
 local data = {}
 local request_log = {}
+local last_heartbeat = {}
 local timeout = 6
 
 local ownid = tonumber(arg[1])
@@ -102,16 +103,31 @@ client:on{
 				count = count + string.byte(payload.chave, i)
 			end
 			local response = handle_request(client,payload)
-			if math.floor(count % totalservers) == ownid then
+			if (count % totalservers) == ownid then
 				assert(client:publish{
 					topic = payload.topicoresp,
 					payload = response
 				})
+			elseif (count % totalservers) == ownid-1 then
+				local last_seen = last_heartbeat[ownid-1]
+				if (os.time() - last_seen) > timeout then
+					local to_remove = {}
+					for request, timestamp in pairs(request_log) do
+						if timestamp > last_seen then
+							handle_request(client,request)
+							to_remove[#to_remove+1] = request
+						end
+					end
+					for _, value in ipairs(to_remove) do
+						request_log[value] = nil
+					end
+				end
 			end
 
 		elseif msg.topic == "inf1406-monitor" then
-
-			if json.decode(msg.payload).id == "monitor" then
+			local payload = json.decode(msg.payload)
+			if payload.id == "monitor" then
+				last_heartbeat = payload
 				assert(client:publish{
 					topic = "inf1406-monitor",
 					payload = json.encode({
