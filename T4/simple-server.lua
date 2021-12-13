@@ -108,7 +108,7 @@ client:on{
 					topic = payload.topicoresp,
 					payload = response
 				})
-			elseif (count % totalservers) == ownid-1 then
+			elseif (count % totalservers) == ((ownid-1) % totalservers) then
 				local last_seen = last_heartbeat[ownid-1] or os.time()
 				if (os.time() - last_seen) > timeout then
 					local to_remove = {}
