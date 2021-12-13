@@ -1,4 +1,6 @@
--- load mqtt module
+-- Alunos: Mark Ribeiro e Nagib Suaid
+-- Matriculas: 1612043 e 1710839
+
 local mqtt = require("mqtt")
 local json = require("json")
 
@@ -31,7 +33,7 @@ local function handle_request (client,payload)
 			status = "OK",
 			id = idpedido
 		})
-	else --consulta
+	else
 		response = json.encode({
 			value = data[chave],
 			status = "OK",
@@ -54,12 +56,8 @@ local function clean_log()
 	end
 end
 
--- create mqtt client
 local client = mqtt.client{
-	-- NOTE: this broker is not working sometimes; comment username = "..." below if you still want to use it
-	-- uri = "test.mosquitto.org",
 	uri = "mqtt.flespi.io",
-	-- NOTE: more about flespi tokens: https://flespi.com/kb/tokens-access-keys-to-flespi-platform
 	username = "IiVHCfKm0DFQRZuyGhf8zolxbmi1nhYTnHpOKZYAtue8hzuLGAH3OSoO3uDeBrYN",
 	clean = true,
 	id = "servidor"..ownid
@@ -71,9 +69,8 @@ client:on{
 			print("Falha na conexão com broker:", connack:reason_string(), connack)
 			return
 		end
-		print("Conectado:", connack) -- successful connection
+		print("Conectado:", connack)
 
-		-- subscribe to test topic and publish message after it
 		assert(client:subscribe{ topic="inf1406-reqs", callback=function(suback)
 			print("Assinou:", suback)
 		end})
@@ -97,7 +94,6 @@ client:on{
 		print("Recebido:", msg.payload)
 		if msg.topic == "inf1406-reqs" then
 
-			--TODO handle only if key's hash mod n = id
 			local payload = json.decode(msg.payload)
 			request_log[payload] = os.time()
 			clean_log()
@@ -107,7 +103,6 @@ client:on{
 			end
 			local response = handle_request(client,payload)
 			if math.floor(count % totalservers) == ownid then
-				-- publish test message
 				assert(client:publish{
 					topic = payload.topicoresp,
 					payload = response
