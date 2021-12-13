@@ -20,7 +20,7 @@ client:on{
 		end
 		print("Conectado:", connack) -- successful connection
 		-- subscribe to test topic and publish message after it
-		assert(client:subscribe{ topic="inf1406-resps", callback=function(suback)
+		assert(client:subscribe{ topic="inf1406-resp"..arg[4], callback=function(suback)
 			print("Assinou:", suback)
             
             mensagem = {
