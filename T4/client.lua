@@ -7,7 +7,7 @@ local json = require("json")
 if #arg<4 then
 	print("Numero de argumentos não corresponde ao desejado")
 	print("Favor repetir o comando da seguinte forma:")
-	print("> lua5.3 simple-client.lua <id> <tipomsg> <chave> <idpedido> <novovalor>(opcional)")
+	print("> lua5.3 client.lua <id> <tipomsg> <chave> <idpedido> <novovalor>(opcional)")
 	os.exit()
 end
 

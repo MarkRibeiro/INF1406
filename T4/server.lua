@@ -15,7 +15,7 @@ local totalservers = tonumber(arg[2])
 if #arg<2 then
     print("Numero de argumentos não corresponde ao desejado")
     print("Favor repetir o comando da seguinte forma:")
-    print("> lua5.3 simple-server.lua <ownid> <totalservers>")
+    print("> lua5.3 server.lua <ownid> <totalservers>")
     os.exit()
 end
 
@@ -35,13 +35,16 @@ local function handle_request (client,payload)
 		data[chave] = novovalor
 		response = json.encode({
 			status = "OK",
-			id = idpedido
+			idpedido = idpedido,
+			ideservidor = ownid
 		})
 	else
 		response = json.encode({
 			value = data[chave],
 			status = "OK",
-			id = idpedido
+			idpedido = idpedido,
+			ideservidor = ownid
+
 		})
 	end
 	return response
@@ -88,7 +91,7 @@ client:on{
 		assert(client:publish{
 			topic = "inf1406-monitor",
 			payload = json.encode({
-				id = "servidor",
+				id = "servidor"..ownid,
 				timestamp = os.time(),
 			})
 		})
@@ -137,7 +140,7 @@ client:on{
 				assert(client:publish{
 					topic = "inf1406-monitor",
 					payload = json.encode({
-						id = "servidor",
+						id = "servidor"..ownid,
 						timestamp = os.time(),
 					})
 				})
