@@ -2,6 +2,13 @@
 local mqtt = require("mqtt")
 local json = require("json")
 
+if #arg<4 then
+    print("Numero de argumentos não corresponde ao desejado")
+    print("Favor repetir o comando da seguinte forma:")
+    print("> lua5.3 simple-client.lua <id> <tipomsg> <chave> <idpedido> <novovalor>(opcional)")
+    os.exit()
+end
+
 -- create mqtt client
 local client = mqtt.client{
 	-- NOTE: this broker is not working sometimes; comment username = "..." below if you still want to use it
@@ -20,15 +27,15 @@ client:on{
 		end
 		print("Conectado:", connack) -- successful connection
 		-- subscribe to test topic and publish message after it
-		assert(client:subscribe{ topic="inf1406-resp"..arg[4], callback=function(suback)
+		assert(client:subscribe{ topic="inf1406-resp"..arg[1], callback=function(suback)
 			print("Assinou:", suback)
             
             mensagem = {
                 tipomsg = arg[2],
                 chave = arg[3], 
-                topicoresp = "inf1406-resp"..arg[4],
-                idpedido = arg[5],
-                novovalor = arg[6]
+                topicoresp = "inf1406-resp"..arg[1],
+                idpedido = arg[4],
+                novovalor = arg[5]
             }
 
 			-- publish test message

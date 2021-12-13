@@ -6,8 +6,18 @@ local data = {}
 local request_log = {}
 local timeout = 6
 
-local function handle_request (client,msg)
-	local payload = json.decode(msg.payload)
+local ownid = tonumber(arg[1])
+local totalservers = tonumber(arg[2])
+
+if #arg<2 then
+    print("Numero de argumentos não corresponde ao desejado")
+    print("Favor repetir o comando da seguinte forma:")
+    print("> lua5.3 simple-server.lua <ownid> <totalservers>")
+    os.exit()
+end
+
+
+local function handle_request (client,payload)
 	local tipomsg = payload.tipomsg
 	local chave = payload.chave
 	local topicoresp = payload.topicoresp
@@ -28,12 +38,7 @@ local function handle_request (client,msg)
 			id = idpedido
 		})
 	end
-
-	-- publish test message
-	assert(client:publish{
-		topic = topicoresp,
-		payload = response
-	})
+	return response
 end
 
 local function clean_log()
@@ -57,7 +62,7 @@ local client = mqtt.client{
 	-- NOTE: more about flespi tokens: https://flespi.com/kb/tokens-access-keys-to-flespi-platform
 	username = "IiVHCfKm0DFQRZuyGhf8zolxbmi1nhYTnHpOKZYAtue8hzuLGAH3OSoO3uDeBrYN",
 	clean = true,
-	id = "servidor"
+	id = "servidor"..ownid
 }
 
 client:on{
@@ -91,11 +96,23 @@ client:on{
 
 		print("Recebido:", msg.payload)
 		if msg.topic == "inf1406-reqs" then
-			request_log[msg.payload] = os.time()
-			clean_log()
 
 			--TODO handle only if key's hash mod n = id
-			handle_request(client,msg)
+			local payload = json.decode(msg.payload)
+			request_log[payload] = os.time()
+			clean_log()
+			local count = 0
+			for i=1, #(payload.chave) do
+				count = count + string.byte(payload.chave, i)
+			end
+			local response = handle_request(client,payload)
+			if math.floor(count % totalservers) == ownid then
+				-- publish test message
+				assert(client:publish{
+					topic = payload.topicoresp,
+					payload = response
+				})
+			end
 
 		elseif msg.topic == "inf1406-monitor" then
 
