@@ -1,8 +1,10 @@
 -- load mqtt module
 local mqtt = require("mqtt")
 local json = require("json")
-local llthreads = require("llthreads2")
+
 local data = {}
+local request_log = {}
+local timeout = 6
 
 local function handle_request (client,msg)
 	local payload = json.decode(msg.payload)
@@ -13,15 +15,15 @@ local function handle_request (client,msg)
 	local novovalor = payload.novovalor
 	local response
 
-	if tipomsg == "insert" then
-		data.chave = novovalor
+	if tipomsg == "I" then
+		data[chave] = novovalor
 		response = json.encode({
 			status = "OK",
 			id = idpedido
 		})
 	else --consulta
 		response = json.encode({
-			value = data.chave,
+			value = data[chave],
 			status = "OK",
 			id = idpedido
 		})
@@ -32,6 +34,19 @@ local function handle_request (client,msg)
 		topic = topicoresp,
 		payload = response
 	})
+end
+
+local function clean_log()
+	local old_entries = {}
+	local time = os.time()
+	for k,v in pairs(request_log) do
+		if time - v > timeout then
+			old_entries[#old_entries+1] = k
+		end
+	end
+	for _,v in ipairs(old_entries) do
+		request_log[v] = nil
+	end
 end
 
 -- create mqtt client
@@ -76,6 +91,10 @@ client:on{
 
 		print("Recebido:", msg.payload)
 		if msg.topic == "inf1406-reqs" then
+			request_log[msg.payload] = os.time()
+			clean_log()
+
+			--TODO handle only if key's hash mod n = id
 			handle_request(client,msg)
 
 		elseif msg.topic == "inf1406-monitor" then
