@@ -19,6 +19,9 @@ if #arg<2 then
     os.exit()
 end
 
+local function sleep(n)
+	os.execute("sleep " .. tonumber(n))
+end
 
 local function handle_request (client,payload)
 	local tipomsg = payload.tipomsg
@@ -78,6 +81,9 @@ client:on{
 		assert(client:subscribe{ topic="inf1406-monitor", callback=function(suback)
 			print("Assinou:", suback)
 		end})
+		assert(client:subscribe{ topic="inf1406-test", callback=function(suback)
+			print("Assinou:", suback)
+		end})
 
 		assert(client:publish{
 			topic = "inf1406-monitor",
@@ -135,6 +141,10 @@ client:on{
 						timestamp = os.time(),
 					})
 				})
+			end
+		elseif msg.topic == "inf1406-test" then
+			if tonumber(msg.payload) == ownid then
+				sleep(15)
 			end
 		end
 	end,
