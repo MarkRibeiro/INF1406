@@ -10,7 +10,7 @@ local client = mqtt.client{
 	-- NOTE: more about flespi tokens: https://flespi.com/kb/tokens-access-keys-to-flespi-platform
 	username = "Q9CcYotuwqKbYWOK19CafvAdYiD7UjHAi7B4jUoGbZFXLkyAhYynhZo57P3PYyd4",
     clean = true,
-	id = "cliente"
+	id = arg[1]
 }
 client:on{
 	connect = function(connack)
@@ -19,17 +19,16 @@ client:on{
 			return
 		end
 		print("Conectado:", connack) -- successful connection
-
 		-- subscribe to test topic and publish message after it
 		assert(client:subscribe{ topic="inf1406-resps", callback=function(suback)
 			print("Assinou:", suback)
             
             mensagem = {
-                tipomsg = "insert",
-                chave = "1", 
-                topicoresp = "inf1406-resps",
-                idpedido = "4",
-                novovalor = "5"
+                tipomsg = arg[2],
+                chave = arg[3], 
+                topicoresp = "inf1406-resp"..arg[4],
+                idpedido = arg[5],
+                novovalor = arg[6]
             }
 
 			-- publish test message
