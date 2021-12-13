@@ -114,8 +114,8 @@ client:on{
 					topic = payload.topicoresp,
 					payload = response
 				})
-			elseif (count % totalservers) == ((ownid-1) % totalservers) then
-				local last_seen = last_heartbeat[ownid-1] or os.time()
+			elseif (count % totalservers) == ((ownid+1) % totalservers) then
+				local last_seen = last_heartbeat[((ownid+1) % totalservers)] or os.time()
 				if (os.time() - last_seen) > timeout then
 					local to_remove = {}
 					for request, timestamp in pairs(request_log) do
@@ -144,7 +144,7 @@ client:on{
 			end
 		elseif msg.topic == "inf1406-test" then
 			if tonumber(msg.payload) == ownid then
-				sleep(15)
+				sleep(60)
 			end
 		end
 	end,
