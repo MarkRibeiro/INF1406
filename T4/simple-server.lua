@@ -4,6 +4,36 @@ local json = require("json")
 local llthreads = require("llthreads2")
 local data = {}
 
+local function handle_request (client,msg)
+	local payload = json.decode(msg.payload)
+	local tipomsg = payload.tipomsg
+	local chave = payload.chave
+	local topicoresp = payload.topicoresp
+	local idpedido = payload.idpedido
+	local novovalor = payload.novovalor
+	local response
+
+	if tipomsg == "insert" then
+		data.chave = novovalor
+		response = json.encode({
+			status = "OK",
+			id = idpedido
+		})
+	else --consulta
+		response = json.encode({
+			value = data.chave,
+			status = "OK",
+			id = idpedido
+		})
+	end
+
+	-- publish test message
+	assert(client:publish{
+		topic = topicoresp,
+		payload = response
+	})
+end
+
 -- create mqtt client
 local client = mqtt.client{
 	-- NOTE: this broker is not working sometimes; comment username = "..." below if you still want to use it
@@ -28,40 +58,39 @@ client:on{
 		assert(client:subscribe{ topic="inf1406-reqs", callback=function(suback)
 			print("subscribed:", suback)
 		end})
+		assert(client:subscribe{ topic="inf1406-monitor", callback=function(suback)
+			print("subscribed:", suback)
+		end})
+
+		assert(client:publish{
+			topic = "inf1406-monitor",
+			payload = json.encode({
+				id = "servidor",
+				timestamp = os.time(),
+			})
+		})
 	end,
 
 	message = function(msg)
-		print("Recebi algo\n")
+
 		assert(client:acknowledge(msg))
 
 		print("received:", msg.payload)
-		local payload = json.decode(msg.payload)
-		local tipomsg = payload.tipomsg
-		local chave = payload.chave
-		local topicoresp = payload.topicoresp
-		local idpedido = payload.idpedido
-		local novovalor = payload.novovalor
-		local response 
+		if msg.topic == "inf1406-reqs" then
+			handle_request(client,msg)
 
-		if tipomsg == "insert" then
-			data.chave = novovalor
-			response = json.encode({
-				status = "OK",
-				id = idpedido
-			})
-		else --consulta
-			response = json.encode({
-				value = data.chave,
-				status = "OK",
-				id = idpedido
-			})
+		elseif msg.topic == "inf1406-monitor" then
+
+			if json.decode(msg.payload).id == "monitor" then
+				assert(client:publish{
+					topic = "inf1406-monitor",
+					payload = json.encode({
+						id = "servidor",
+						timestamp = os.time(),
+					})
+				})
+			end
 		end
-
-		-- publish test message
-		assert(client:publish{
-			topic = topicoresp,
-			payload = response
-		})
 	end,
 
 	error = function(err)
